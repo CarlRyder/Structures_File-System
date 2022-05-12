@@ -54,6 +54,8 @@ void memory_error()
 	exit(DEFAULT_EXIT_ERROR);
 }
 
+/* Tree transformation functions */
+
 void tree_init()
 {
 	// Creating the root of tree
@@ -140,12 +142,14 @@ int key_push(Node* directory, char* fname)
 			return ERROR;
 		}
 	}
+	// Creating new file
 	Key* new_file = (Key*)malloc(sizeof(Key));
 	if (new_file != NULL)
 	{
 		new_file->directory = directory;
 		strcpy(new_file->creation_date, get_date_now());
 		strcpy(new_file->name, fname);
+		// Changing current directory
 		for (int i = 0; i < TREE_DEGREE - 1; i++)
 		{
 			if (directory->keys[i] == NULL)
@@ -163,6 +167,65 @@ int key_push(Node* directory, char* fname)
 		return ERROR;
 	}
 }
+
+int node_delete(Node* directory)
+{
+	// Deleting all files in this directory
+	for (int i = 0; i < TREE_DEGREE - 1; i++)
+	{
+		if (directory->keys[i] == NULL) break;
+		free(directory->keys[i]);
+		directory->keys[i] = NULL;
+	}
+	// Deleting all folders in this directory
+	for (int i = 0; i < TREE_DEGREE; i++)
+	{
+		if (directory->childrens[i] == NULL) break;
+		node_delete(directory->childrens[i]);
+	}
+	// Removing this directory from the tree
+	for (int i = 0; i < TREE_DEGREE; i++)
+	{
+		if ((directory->parent)->childrens[i] == directory)
+		{
+			free((directory->parent)->childrens[i]);
+			(directory->parent)->childrens[i] = NULL;
+			break;
+		}
+	}
+}
+
+int key_delete(Node* directory, int key_number)
+{
+	for (int i = 0; i < TREE_DEGREE - 1; i++)
+	{
+		if (directory->keys[i] == NULL) break;
+		if (i >= key_number)
+		{
+			// If this is the first file in the directory, then first just delete it
+			if (i == 0)
+			{
+				free(directory->keys[i]);
+				directory->keys[i] == NULL;
+			}
+			else
+			{
+				directory->keys[i - 1] = directory->keys[i];
+				free(directory->keys[i]);
+				directory->keys[i] == NULL;
+			}
+		}
+	}
+}
+
+int item_delete(Node* directory)
+{
+
+}
+
+/* ------------------------------ */
+
+/*  Command processing functions  */
 
 int read_command(char* str)
 {
@@ -226,6 +289,8 @@ void inputs()
 		else printf("%s: command not found\n\n", input);
 	}
 }
+
+/* ------------------------------ */
 
 int main()
 {
