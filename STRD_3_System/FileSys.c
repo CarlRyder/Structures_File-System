@@ -21,9 +21,9 @@ typedef struct TNode
 {
 	int num_nodes;
 	int num_keys;
-	Key* keys[TREE_DEGREE - 1];
-	Node* childrens[TREE_DEGREE];
-	Node* parent;
+	struct FKey* keys[TREE_DEGREE - 1];
+	struct TNode* childrens[TREE_DEGREE];
+	struct TNode* parent;
 	char creation_date[CREATION_DATE_LEN];
 	char name[NAME_MAX_LEN];
 } Node;
