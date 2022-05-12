@@ -2,7 +2,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define DEFAULT_EXIT_ERROR -1
-#define DEGREE 30
+#define TREE_DEGREE 30
 #define CREATION_DATE_LEN 25
 #define NAME_MAX_LEN 30
 #define EXPAN_MAX_LEN 10
@@ -21,8 +21,8 @@ typedef struct TNode
 {
 	int num_nodes;
 	int num_keys;
-	Key* keys[DEGREE - 1];
-	Node* childrens[DEGREE];
+	Key* keys[TREE_DEGREE - 1];
+	Node* childrens[TREE_DEGREE];
 	Node* parent;
 	char creation_date[CREATION_DATE_LEN];
 	char name[NAME_MAX_LEN];
@@ -47,6 +47,13 @@ char* get_date_now()
 	return date;
 }
 
+void memory_error()
+{
+	printf("The memory for the tree was not allocated.\n"
+		"Emergency shutdown with error: %d\n", DEFAULT_EXIT_ERROR);
+	exit(DEFAULT_EXIT_ERROR);
+}
+
 void tree_init()
 {
 	root = (Node*)malloc(sizeof(Node));
@@ -55,36 +62,57 @@ void tree_init()
 		root->num_nodes = 0;
 		root->num_keys = 0;
 		root->parent = NULL;
-		for (int i = 0; i < DEGREE; i++) root->childrens[i] = NULL;
+		for (int i = 0; i < TREE_DEGREE; i++) root->childrens[i] = NULL;
 		strcpy(root->name, "/");
 		strcpy(root->creation_date, get_date_now());
 		way_now[0] = '/';
 		directory_now = root;
 	}
-	else
-	{
-		printf("The memory for the tree was not allocated.\n"
-			"Emergency shutdown with error: %d\n", DEFAULT_EXIT_ERROR);
-		exit(DEFAULT_EXIT_ERROR);
-	}
+	else memory_error();
 }
 
 int node_push(Node* directory, char* dname)
 {
-	if (directory->num_nodes == DEGREE - 1)
+	// Checking if the limit of created folders in the directory is exceeded
+	if (directory->num_nodes == TREE_DEGREE - 1)
 	{
 		printf("mkdir: Exceeded the limit on the number of folders in the directory \"%s\"\n", directory->name);
-		return 0;
+		return ERROR;
 	}
-	for (int i = 0; i < DEGREE; i++)
+	// Checking for the existence of a folder with the same name
+	for (int i = 0; i < TREE_DEGREE; i++)
 	{
 		if (directory->childrens[i] == NULL) break;
 		char* directory_name = directory->childrens[i]->name;
 		if (strcmp(directory_name, dname) == 0)
 		{
-
+			printf("mkdir: Error creating the directory \"%s\". A folder with that name already exists.\n", dname);
+			return ERROR;
 		}
 	}
+	// Creating new folder
+	Node* new_folder = (Node*)malloc(sizeof(Node));
+	if (new_folder != NULL)
+	{
+		new_folder->parent = directory;
+		new_folder->num_keys = 0;
+		new_folder->num_nodes = 0;
+		for (int i = 0; i < TREE_DEGREE; i++) new_folder->childrens[i] = NULL;
+		for (int i = 0; i < TREE_DEGREE - 1; i++) new_folder->keys[i] = NULL;
+		strcpy(new_folder->name, dname);
+		strcpy(new_folder->creation_date, get_date_now());
+		// Changing current directory
+		for (int i = 0; i < TREE_DEGREE; i++)
+		{
+			if (directory->childrens[i] == NULL)
+			{
+				directory->childrens[i] = new_folder;
+				directory->num_nodes++;
+				break;
+			}
+		}
+	}
+	else memory_error();
 }
 
 int read_command(char* str)
