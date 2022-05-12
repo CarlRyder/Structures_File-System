@@ -8,9 +8,12 @@
 #define EXPAN_MAX_LEN 10
 #define INPUT_MAX_LEN 256
 #define WAY_MAX_LEN 2048
+#define ERROR 0
+#define	TRUE 1
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 
@@ -18,9 +21,9 @@ typedef struct TNode
 {
 	int num_nodes;
 	int num_keys;
-	struct Key* keys[DEGREE - 1];
-	struct Node* childrens[DEGREE];
-	struct Node* parent;
+	Key* keys[DEGREE - 1];
+	Node* childrens[DEGREE];
+	Node* parent;
 	char creation_date[CREATION_DATE_LEN];
 	char name[NAME_MAX_LEN];
 } Node;
@@ -35,7 +38,7 @@ typedef struct FKey
 // Initialization of required global variables
 Node* root = NULL;
 Node* directory_now = NULL;
-char* way_now = NULL;
+char way_now[WAY_MAX_LEN] = { 0 };
 
 char* get_date_now()
 {
@@ -55,8 +58,7 @@ void tree_init()
 		for (int i = 0; i < DEGREE; i++) root->childrens[i] = NULL;
 		strcpy(root->name, "/");
 		strcpy(root->creation_date, get_date_now());
-		char* temp = (char*)realloc(way_now, WAY_MAX_LEN * sizeof(char));
-		if (temp != NULL) way_now = temp;
+		way_now[0] = '/';
 		directory_now = root;
 	}
 	else
@@ -64,6 +66,24 @@ void tree_init()
 		printf("The memory for the tree was not allocated.\n"
 			"Emergency shutdown with error: %d\n", DEFAULT_EXIT_ERROR);
 		exit(DEFAULT_EXIT_ERROR);
+	}
+}
+
+int node_push(Node* directory, char* dname)
+{
+	if (directory->num_nodes == DEGREE - 1)
+	{
+		printf("mkdir: Exceeded the limit on the number of folders in the directory \"%s\"\n", directory->name);
+		return 0;
+	}
+	for (int i = 0; i < DEGREE; i++)
+	{
+		if (directory->childrens[i] == NULL) break;
+		char* directory_name = directory->childrens[i]->name;
+		if (strcmp(directory_name, dname) == 0)
+		{
+
+		}
 	}
 }
 
@@ -89,27 +109,22 @@ int read_command(char* str)
 	return mark;
 }
 
-void cd_command(char* str)
+void inputs()
 {
-
-}
-
-void begin()
-{
-	int flag = 0;
-	while (1)
+	bool flag = false;
+	while (true)
 	{
-		if (flag == 1) break;
-		printf("> ");
+		if (flag == true) break;
+		printf("%s > ", way_now);
 		char input[INPUT_MAX_LEN];
 		fgets(input, INPUT_MAX_LEN, stdin);
 		input[strcspn(input, "\n")] = 0;
 		fseek(stdin, 0, SEEK_END);
 		int num = read_command(input);
-		if (num == 0) flag = 1; // exit
+		if (num == 0) flag = true; // exit
 		else if (num == 1) // cd
 		{
-			cd_command(input);
+			
 		}
 		else if (num == 2) // ls
 		{
@@ -140,5 +155,5 @@ int main()
 	printf("File System \"Alpha\"\n"
 		"Copyright (c) 2022 Saint-Petersburg Polytechnic University, Russia\n");
 	tree_init();
-	begin();
+	inputs();
 }
