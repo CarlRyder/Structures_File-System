@@ -19,8 +19,8 @@
 
 typedef struct TNode
 {
-	int num_nodes;
-	int num_keys;
+	int count_nodes;
+	int count_keys;
 	struct FKey* keys[TREE_DEGREE - 1];
 	struct TNode* childrens[TREE_DEGREE];
 	struct TNode* parent;
@@ -56,11 +56,12 @@ void memory_error()
 
 void tree_init()
 {
+	// Creating the root of tree
 	root = (Node*)malloc(sizeof(Node));
 	if (root != NULL)
 	{
-		root->num_nodes = 0;
-		root->num_keys = 0;
+		root->count_nodes = 0;
+		root->count_keys = 0;
 		root->parent = NULL;
 		for (int i = 0; i < TREE_DEGREE; i++) root->childrens[i] = NULL;
 		strcpy(root->name, "/");
@@ -74,7 +75,7 @@ void tree_init()
 int node_push(Node* directory, char* dname)
 {
 	// Checking if the limit of created folders in the directory is exceeded
-	if (directory->num_nodes == TREE_DEGREE - 1)
+	if (directory->count_nodes == TREE_DEGREE)
 	{
 		printf("mkdir: Exceeded the limit on the number of folders in the directory \"%s\"\n", directory->name);
 		return ERROR;
@@ -95,8 +96,8 @@ int node_push(Node* directory, char* dname)
 	if (new_folder != NULL)
 	{
 		new_folder->parent = directory;
-		new_folder->num_keys = 0;
-		new_folder->num_nodes = 0;
+		new_folder->count_keys = 0;
+		new_folder->count_nodes = 0;
 		for (int i = 0; i < TREE_DEGREE; i++) new_folder->childrens[i] = NULL;
 		for (int i = 0; i < TREE_DEGREE - 1; i++) new_folder->keys[i] = NULL;
 		strcpy(new_folder->name, dname);
@@ -107,12 +108,60 @@ int node_push(Node* directory, char* dname)
 			if (directory->childrens[i] == NULL)
 			{
 				directory->childrens[i] = new_folder;
-				directory->num_nodes++;
+				directory->count_nodes++;
 				break;
 			}
 		}
+		return TRUE;
 	}
-	else memory_error();
+	else
+	{
+		memory_error();
+		return ERROR;
+	}
+}
+
+int key_push(Node* directory, char* fname)
+{
+	// Checking if the limit of created folders in the directory is exceeded
+	if (directory->count_keys == TREE_DEGREE - 1)
+	{
+		printf("touch: Exceeded the limit on the number of files in the directory \"%s\"\n", directory->name);
+		return ERROR;
+	}
+	// Checking for the existence of a file with the same name
+	for (int i = 0; i < TREE_DEGREE - 1; i++)
+	{
+		if (directory->keys[i] == NULL) break;
+		char* file_name = directory->keys[i]->name;
+		if (strcmp(file_name, fname) == 0)
+		{
+			printf("touch: Error creating the file \"%s\". A file with that name already exists.\n", fname);
+			return ERROR;
+		}
+	}
+	Key* new_file = (Key*)malloc(sizeof(Key));
+	if (new_file != NULL)
+	{
+		new_file->directory = directory;
+		strcpy(new_file->creation_date, get_date_now());
+		strcpy(new_file->name, fname);
+		for (int i = 0; i < TREE_DEGREE - 1; i++)
+		{
+			if (directory->keys[i] == NULL)
+			{
+				directory->keys[i] = new_file;
+				directory->count_keys++;
+				break;
+			}
+		}
+		return TRUE;
+	}
+	else
+	{
+		memory_error();
+		return ERROR;
+	}
 }
 
 int read_command(char* str)
