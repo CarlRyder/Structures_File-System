@@ -32,7 +32,7 @@ typedef struct FKey
 	Node* directory;
 } Key;
 
-// Инициализация необходимых глобальных переменных
+// Initialization of required global variables
 Node* root = NULL;
 Node* directory_now = NULL;
 char* way_now = NULL;
