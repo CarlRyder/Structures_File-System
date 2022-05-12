@@ -168,7 +168,7 @@ int key_push(Node* directory, char* fname)
 	}
 }
 
-int node_delete(Node* directory)
+void node_delete(Node* directory)
 {
 	// Deleting all files in this directory
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
@@ -195,7 +195,7 @@ int node_delete(Node* directory)
 	}
 }
 
-int key_delete(Node* directory, int key_number)
+void key_delete(Node* directory, int key_number)
 {
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
 	{
@@ -218,9 +218,38 @@ int key_delete(Node* directory, int key_number)
 	}
 }
 
-int item_delete(Node* directory)
+int item_delete(Node* directory, char* name, int flag)
 {
-
+	// Delete the file
+	for (int i = 0; i < TREE_DEGREE - 1; i++)
+	{
+		if (directory->keys[i] == NULL) break;
+		char* file_name = directory->keys[i]->name;
+		if (strcmp(file_name, name) == 0)
+		{
+			key_delete(directory, i);
+			return TRUE;
+		}
+	}
+	for (int i = 0; i < TREE_DEGREE; i++)
+	{
+		if (directory->childrens[i] == NULL) break;
+		char* directory_name = directory->childrens[i]->name;
+		if (strcmp(directory_name, name) == 0)
+		{
+			if (flag == 1)
+			{
+				node_delete(directory);
+				return TRUE;
+			}
+			else
+			{
+				printf("rm: Deletion \"%s\" is not possible. This object is a folder.", name);
+				return ERROR;
+			}
+		}
+	}
+	printf("rm: \"%s\" ñannot be deleted. This object is missing in the current directory.", name);
 }
 
 /* ------------------------------ */
