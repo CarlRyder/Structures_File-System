@@ -249,7 +249,12 @@ int item_delete(Node* directory, char* name, int flag)
 			}
 		}
 	}
-	printf("rm: \"%s\" ñannot be deleted. This object is missing in the current directory.", name);
+	printf("rm: \"%s\" cannot be deleted. This object is missing in the current directory.", name);
+}
+
+int item_find(Node* directory, char* name)
+{
+
 }
 
 /* ------------------------------ */
@@ -278,6 +283,36 @@ int read_command(char* str)
 	return mark;
 }
 
+void command_cd(char* str)
+{
+
+}
+
+void command_ls(char* str)
+{
+
+}
+
+void command_rm(char* str)
+{
+
+}
+
+void command_mkdir(char* str)
+{
+
+}
+
+void command_touch(char* str)
+{
+
+}
+
+void command_find(char* str)
+{
+
+}
+
 void inputs()
 {
 	bool flag = false;
@@ -291,30 +326,12 @@ void inputs()
 		fseek(stdin, 0, SEEK_END);
 		int num = read_command(input);
 		if (num == 0) flag = true; // exit
-		else if (num == 1) // cd
-		{
-			
-		}
-		else if (num == 2) // ls
-		{
-
-		}
-		else if (num == 3) // rm
-		{
-
-		}
-		else if (num == 4) // mkdir
-		{
-			
-		}
-		else if (num == 5) // touch
-		{
-
-		}
-		else if (num == 6) // find
-		{
-
-		}
+		else if (num == 1) command_cd(input);
+		else if (num == 2) command_ls(input);
+		else if (num == 3) command_rm(input);
+		else if (num == 4) command_mkdir(input);
+		else if (num == 5) command_touch(input);
+		else if (num == 6) command_find(input);
 		else printf("%s: command not found\n\n", input);
 	}
 }
