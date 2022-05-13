@@ -257,6 +257,40 @@ int item_find(Node* directory, char* name)
 
 }
 
+int items_print(int flag)
+{
+	if (flag == 1)
+	{
+		// Output of elements using the ls command with the - l flag (Output of all attributes)
+		for (int i = 0; i < TREE_DEGREE - 1; i++)
+		{
+			if (directory_now->keys[i] == NULL) break;
+			printf("%s %s %s\n", "Professional", directory_now->keys[i]->creation_date, directory_now->keys[i]->name);
+		}
+		for (int i = 0; i < TREE_DEGREE; i++)
+		{
+			if (directory_now->childrens[i] == NULL) break;
+			int count_items = directory_now->childrens[i]->count_keys + directory_now->childrens[i]->count_nodes;
+			printf("%s %s %d %s\n", "Professional", directory_now->childrens[i]->creation_date, count_items, directory_now->childrens[i]->name);
+		}
+	}
+	else
+	{
+		// Output of elements using the ls command without a flag
+		for (int i = 0; i < TREE_DEGREE - 1; i++)
+		{
+			if (directory_now->keys[i] == NULL) break;
+			printf("%s ", directory_now->keys[i]->name);
+		}
+		for (int i = 0; i < TREE_DEGREE; i++)
+		{
+			if (directory_now->childrens[i] == NULL) break;
+			printf("%s ", directory_now->childrens[i]->name);
+		}
+		if (directory_now->childrens[0] != NULL || directory_now->keys[0] != NULL) printf(" \n");
+	}
+}
+
 /* ------------------------------ */
 
 /*  Command processing functions  */
