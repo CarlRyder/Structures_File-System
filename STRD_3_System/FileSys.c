@@ -1,5 +1,6 @@
 // Made by Y. Sendov. May 2022
 
+/* Service defines */
 #define _CRT_SECURE_NO_WARNINGS
 #define DEFAULT_EXIT_ERROR -1
 #define TREE_DEGREE 30
@@ -7,9 +8,18 @@
 #define NAME_MAX_LEN 30
 #define EXPAN_MAX_LEN 10
 #define INPUT_MAX_LEN 256
+#define FOLDER_NAME_MAX_LEN 128
 #define WAY_MAX_LEN 2048
 #define ERROR 0
 #define	TRUE 1
+
+/* Command defines */
+#define CD 1
+#define LS 2
+#define RM 3
+#define MKDIR 4
+#define TOUCH 5
+#define FIND 6
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +45,7 @@ typedef struct FKey
 	Node* directory;
 } Key;
 
-// Initialization of required global variables
+/* Global variables */ 
 Node* root = NULL;
 Node* directory_now = NULL;
 char way_now[WAY_MAX_LEN] = { 0 };
@@ -79,7 +89,7 @@ int node_push(Node* directory, char* dname)
 	// Checking if the limit of created folders in the directory is exceeded
 	if (directory->count_nodes == TREE_DEGREE)
 	{
-		printf("mkdir: Exceeded the limit on the number of folders in the directory \"%s\"\n", directory->name);
+		printf("mkdir: exceeded the limit on the number of folders in the directory \"%s\"\n", directory->name);
 		return ERROR;
 	}
 	// Checking for the existence of a folder with the same name
@@ -89,7 +99,7 @@ int node_push(Node* directory, char* dname)
 		char* directory_name = directory->childrens[i]->name;
 		if (strcmp(directory_name, dname) == 0)
 		{
-			printf("mkdir: Error creating the directory \"%s\". A folder with that name already exists.\n", dname);
+			printf("mkdir: error creating the directory \"%s\". A folder with that name already exists.\n", dname);
 			return ERROR;
 		}
 	}
@@ -128,7 +138,7 @@ int key_push(Node* directory, char* fname)
 	// Checking if the limit of created folders in the directory is exceeded
 	if (directory->count_keys == TREE_DEGREE - 1)
 	{
-		printf("touch: Exceeded the limit on the number of files in the directory \"%s\"\n", directory->name);
+		printf("touch: exceeded the limit on the number of files in the directory \"%s\"\n", directory->name);
 		return ERROR;
 	}
 	// Checking for the existence of a file with the same name
@@ -138,7 +148,7 @@ int key_push(Node* directory, char* fname)
 		char* file_name = directory->keys[i]->name;
 		if (strcmp(file_name, fname) == 0)
 		{
-			printf("touch: Error creating the file \"%s\". A file with that name already exists.\n", fname);
+			printf("touch: error creating the file \"%s\". A file with that name already exists.\n", fname);
 			return ERROR;
 		}
 	}
@@ -206,13 +216,13 @@ void key_delete(Node* directory, int key_number)
 			if (i == 0)
 			{
 				free(directory->keys[i]);
-				directory->keys[i] == NULL;
+				directory->keys[i] = NULL;
 			}
 			else
 			{
 				directory->keys[i - 1] = directory->keys[i];
 				free(directory->keys[i]);
-				directory->keys[i] == NULL;
+				directory->keys[i] = NULL;
 			}
 		}
 	}
@@ -250,6 +260,7 @@ int item_delete(Node* directory, char* name, int flag)
 		}
 	}
 	printf("rm: \"%s\" cannot be deleted. This object is missing in the current directory.", name);
+	return ERROR;
 }
 
 int item_find(Node* directory, char* name)
@@ -332,8 +343,31 @@ void command_rm(char* str)
 
 }
 
+int check_symbol(unsigned char symbol)
+{
+	if (symbol == '/' || symbol == '\\' || symbol == ':' || symbol == '|' || symbol == '?' || symbol == '"' || symbol == '<'
+		|| symbol == '>' || symbol == ' ') return 0;
+	else return 1;
+}
+
 void command_mkdir(char* str)
 {
+	// Reading an argument and checking it for correctness
+	int i = 6, counter = 0;
+	char argument[FOLDER_NAME_MAX_LEN] = { 0 };
+	while (i < strlen(str))
+	{
+		if (str[5] != ' ' || check_symbol(str[i]) == 0)
+		{
+			printf("mkdir: incorrect argument\n");
+			break;
+		}
+		argument[counter] = str[i];
+		if (counter + 1 != FOLDER_NAME_MAX_LEN) counter++;
+		i++;
+	}
+	argument[counter] = '\0';
+	// Creating a new folder in the tree
 
 }
 
@@ -367,6 +401,57 @@ void inputs()
 		else if (num == 5) command_touch(input);
 		else if (num == 6) command_find(input);
 		else printf("%s: command not found\n\n", input);
+	}
+}
+
+int to_directory(char* name, int flag)
+{
+	// Processing the "cd" command
+	if (strcmp(name, "\n") == 0 || strcmp(name, "\0") == 0)
+	{
+		directory_now = root;
+		way_now[0] = '/';
+		for (int i = 1; i < WAY_MAX_LEN; i++) way_now[i] = '\0';
+		return TRUE;
+	}
+	// Processing the "cd .." command
+	if (strcmp(name, "..") == 0)
+	{
+		if (directory_now == root) return TRUE;
+		int count = strlen(way_now);
+		for (int i = count - strlen(directory_now->name) - 1; i < count; i++) way_now[i] = '\0';
+		directory_now = directory_now->parent;
+		if (directory_now == root) way_now[0] = '/';
+		return TRUE;
+	}
+	// Processing the "cd ." command
+	if (strcmp(name, ".") == 0) return TRUE;
+	// Relative path processing
+	if (name[0] == '/')
+	{
+		int count = strlen(way_now);
+		directory_now = root;
+		way_now[0] = '/';
+		for (int i = 1; i < count; i++) way_now[i] = '\0';
+	}
+	char* str = NULL;
+	str = strtok(name, "/");
+	if (str == NULL) return TRUE;
+	while (TRUE)
+	{
+		for (int i = 0; i < TREE_DEGREE; i++)
+		{
+			if (directory_now->childrens[i] == NULL)
+			{
+				// Processing the "find" command
+
+				// Processing the "mkdir" command
+			}
+			else if (strcmp(directory_now->childrens[i]->name, str) == 0)
+			{
+
+			}
+		}
 	}
 }
 
