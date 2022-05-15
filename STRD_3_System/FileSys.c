@@ -12,6 +12,7 @@
 #define WAY_MAX_LEN 2048
 #define ERROR 0
 #define	TRUE 1
+#define USER "User"
 
 /* Command defines */
 #define CD 1
@@ -54,6 +55,7 @@ char* get_date_now()
 {
 	time_t time_now = time(NULL);
 	char* date = ctime(&time_now);
+	date[strcspn(date, "\n")] = 0;
 	return date;
 }
 
@@ -269,7 +271,7 @@ int item_find(Node* directory, char* name)
 
 }
 
-int items_print(int flag)
+void items_print(int flag)
 {
 	if (flag == 1)
 	{
@@ -277,13 +279,13 @@ int items_print(int flag)
 		for (int i = 0; i < TREE_DEGREE - 1; i++)
 		{
 			if (directory_now->keys[i] == NULL) break;
-			printf("%s %s %s\n", "Professional", directory_now->keys[i]->creation_date, directory_now->keys[i]->name);
+			printf("%s %s %s\n", USER, directory_now->keys[i]->creation_date, directory_now->keys[i]->name);
 		}
 		for (int i = 0; i < TREE_DEGREE; i++)
 		{
 			if (directory_now->childrens[i] == NULL) break;
 			int count_items = directory_now->childrens[i]->count_keys + directory_now->childrens[i]->count_nodes;
-			printf("%s %s %d %s\n", "Professional", directory_now->childrens[i]->creation_date, count_items, directory_now->childrens[i]->name);
+			printf("%s %s %d %s\n", USER, directory_now->childrens[i]->creation_date, count_items, directory_now->childrens[i]->name);
 		}
 	}
 	else
@@ -411,7 +413,39 @@ void command_cd(char* str)
 
 void command_ls(char* str)
 {
-
+	int flag = -1;
+	if (str[2] == 0) flag = 0;
+	else
+	{
+		int i = 3, counter = 0;
+		char argument[NAME_MAX_LEN] = { 0 };
+		while (i < strlen(str))
+		{
+			if (str[2] != ' ')
+			{
+				printf("ls: incorrect argument\n");
+				return;
+			}
+			argument[counter] = str[i];
+			if (counter + 1 == NAME_MAX_LEN) break;
+			counter++;
+			i++;
+		}
+		argument[strlen(argument)] = '\0';
+		if (strcmp(argument, "-l") == 0) flag = 1;
+		else
+		{
+			printf("ls: incorrect argument\n");
+			return;
+		}
+	}
+	Node* local_directory_now = directory_now;
+	char local_way_now[WAY_MAX_LEN] = { 0 };
+	strcpy(local_way_now, way_now);
+	items_print(flag);
+	directory_now = local_directory_now;
+	memset(way_now, 0, WAY_MAX_LEN);
+	strcpy(way_now, local_way_now);
 }
 
 void command_rm(char* str)
@@ -436,7 +470,7 @@ void command_mkdir(char* str)
 		if (str[5] != ' ' || check_symbol(str[i]) == 0)
 		{
 			printf("mkdir: incorrect argument\n");
-			return ERROR;
+			return;
 		}
 		argument[counter] = str[i];
 		if (counter + 1 != FOLDER_NAME_MAX_LEN) counter++;
@@ -444,13 +478,13 @@ void command_mkdir(char* str)
 	}
 	argument[counter] = '\0';
 	// Checking for the existence of a file with the same name
-	for (int i = 0; i < TREE_DEGREE - 1; i++)
+	for (int j = 0; j < TREE_DEGREE - 1; j++)
 	{
-		if (directory_now->keys[i] == NULL) break;
-		else if (strcmp(directory_now->keys[i]->name, argument) == 0)
+		if (directory_now->keys[j] == NULL) break;
+		else if (strcmp(directory_now->keys[j]->name, argument) == 0)
 		{
 			printf("mkdir: error creating the folder \"%s\". A file with that name already exists.\n", argument);
-			return ERROR;
+			return;
 		}
 	}
 	// Creating a new folder in the tree
@@ -461,7 +495,6 @@ void command_mkdir(char* str)
 	directory_now = local_directory_now;
 	memset(way_now, 0, WAY_MAX_LEN);
 	strcpy(way_now, local_way_now);
-	return TRUE;
 }
 
 void command_touch(char* str)
