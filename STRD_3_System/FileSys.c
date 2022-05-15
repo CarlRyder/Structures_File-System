@@ -271,6 +271,104 @@ int item_delete(Node* directory, char* name, int flag)
 	return ERROR;
 }
 
+int to_directory(char* name, int flag)
+{
+	// Processing the "cd" command
+	if (strcmp(name, "\n") == 0 || strcmp(name, "\0") == 0)
+	{
+		directory_now = root;
+		way_now[0] = '/';
+		for (int i = 1; i < WAY_MAX_LEN; i++) way_now[i] = '\0';
+		return TRUE;
+	}
+	// Processing the "cd .." command
+	if (strcmp(name, "..") == 0)
+	{
+		if (directory_now == root) return TRUE;
+		int count = strlen(way_now);
+		for (int i = count - strlen(directory_now->name) - 1; i < count; i++) way_now[i] = '\0';
+		directory_now = directory_now->parent;
+		if (directory_now == root) way_now[0] = '/';
+		return TRUE;
+	}
+	// Processing the "cd ." command
+	if (strcmp(name, ".") == 0) return TRUE;
+	// Relative path processing
+	if (name[0] == '/')
+	{
+		int count = strlen(way_now);
+		directory_now = root;
+		way_now[0] = '/';
+		for (int i = 1; i < count; i++) way_now[i] = '\0';
+	}
+	char* str = strtok(name, "/");
+	if (str == NULL) return TRUE;
+	int marker = TRUE;
+	while (TRUE)
+	{
+		for (int i = 0; i < TREE_DEGREE; i++)
+		{
+			if (directory_now->childrens[i] == NULL)
+			{
+				// Processing the "find" command
+				if (flag == FIND)
+				{
+					for (int j = 0; j < TREE_DEGREE - 1; j++)
+					{
+						if (directory_now->keys[j] == NULL)
+						{
+							printf("find: this file does not exist\n");
+							marker = ERROR;
+							break;
+						}
+						if (directory_now->keys[j] != NULL && strcmp(directory_now->keys[j]->name, str) == 0)
+						{
+							if (directory_now == root) printf("%s%s\n", way_now, directory_now->keys[j]->name);
+							else printf("%s/%s\n", way_now, directory_now->keys[j]->name);
+							marker = TRUE;
+							break;
+						}
+					}
+				}
+				// Processing the "mkdir" command
+				if (flag == MKDIR) node_push(directory_now, str);
+				else
+				{
+					marker = ERROR;
+					break;
+				}
+			}
+			if (directory_now->childrens[i] != NULL && strcmp(directory_now->childrens[i]->name, str) == 0)
+			{
+				if (directory_now != root) way_now[strlen(way_now)] = '/';
+				int count = strlen(way_now);
+				for (unsigned int j = 0; j < strlen(str); j++) way_now[j + count] = str[j];
+				directory_now = directory_now->childrens[i];
+				i = -1;
+				str = strtok(NULL, "/");
+				// Processing the delete command
+				if (str == NULL)
+				{
+					if (flag == RM_FLAG) item_delete(directory_now->parent, directory_now->name, 1);
+					if (flag == RM_NOFLAG) item_delete(directory_now->parent, directory_now->name, 0);
+					return marker;
+				}
+			}
+		}
+		if (marker == ERROR) break;
+	}
+	if (flag == TOUCH)
+	{
+		if (strtok(NULL, "/") == NULL)
+		{
+			key_push(directory_now, str);
+			marker = TRUE;
+		}
+	}
+	if (str != NULL && (flag == RM_FLAG) || (flag == RM_NOFLAG)) item_delete(directory_now, str, 1);
+	return marker;
+}
+
 int item_find(Node* directory, char* name)
 {
 	if (to_directory(name, FIND) == ERROR) return TRUE;
@@ -328,107 +426,6 @@ void items_print(int flag)
 	}
 }
 
-int to_directory(char* name, int flag)
-{
-	// Processing the "cd" command
-	if (strcmp(name, "\n") == 0 || strcmp(name, "\0") == 0)
-	{
-		directory_now = root;
-		way_now[0] = '/';
-		for (int i = 1; i < WAY_MAX_LEN; i++) way_now[i] = '\0';
-		return TRUE;
-	}
-	// Processing the "cd .." command
-	if (strcmp(name, "..") == 0)
-	{
-		if (directory_now == root) return TRUE;
-		int count = strlen(way_now);
-		for (int i = count - strlen(directory_now->name) - 1; i < count; i++) way_now[i] = '\0';
-		directory_now = directory_now->parent;
-		if (directory_now == root) way_now[0] = '/';
-		return TRUE;
-	}
-	// Processing the "cd ." command
-	if (strcmp(name, ".") == 0) return TRUE;
-	// Relative path processing
-	if (name[0] == '/')
-	{
-		int count = strlen(way_now);
-		directory_now = root;
-		way_now[0] = '/';
-		for (int i = 1; i < count; i++) way_now[i] = '\0';
-	}
-	char* str = strtok(name, "/");
-	if (str == NULL) return TRUE;
-	int marker = TRUE;
-	while (TRUE)
-	{
-		for (int i = 0; i < TREE_DEGREE; i++)
-		{
-			if (directory_now->childrens[i] == NULL)
-			{
-				// Processing the "find" command
-				if (flag == FIND)
-				{
-					for (int j = 0; j < TREE_DEGREE - 1; j++)
-					{
-						if (directory_now->keys[j] == NULL) 
-						{
-							printf("find: this file does not exist\n");
-							marker = ERROR;
-							break;
-						}
-						if (directory_now->keys[j] != NULL && strcmp(directory_now->keys[j]->name, str) == 0)
-						{
-							if (directory_now == root) printf("%s%s\n", way_now, directory_now->keys[j]->name);
-							else printf("%s/%s\n", way_now, directory_now->keys[j]->name);
-							marker = TRUE;
-							break;
-						}
-					}
-				}
-				// Processing the "mkdir" command
-				if (flag == MKDIR) node_push(directory_now, str);
-				else
-				{
-					marker = ERROR;
-					break;
-				}
-			}
-			if (directory_now->childrens[i] != NULL && strcmp(directory_now->childrens[i]->name, str) == 0)
-			{
-				if (directory_now != root) way_now[strlen(way_now)] = '/';
-				int count = strlen(way_now);
-				for (int j = 0; j < strlen(str); j++) way_now[j + count] = str[j];
-				directory_now = directory_now->childrens[i];
-				i = -1;
-				str = strtok(NULL, "/");
-				// Processing the delete command
-				if (str == NULL)
-				{
-					if (flag == RM_FLAG) item_delete(directory_now->parent, directory_now->name, 1);
-					if (flag == RM_NOFLAG) item_delete(directory_now->parent, directory_now->name, 0);
-					return marker;
-				}
-			}
-		}
-		if (marker == ERROR) break;
-	}
-	if (flag == TOUCH)
-	{
-		if (strtok(NULL, "/") == NULL)
-		{
-			key_push(directory_now, str);
-			marker = TRUE;
-		}
-	}
-	if (str != NULL && (flag == RM_FLAG) || (flag == RM_NOFLAG))
-	{
-		item_delete(directory_now, str, 1);
-	}
-	return marker;
-}
-
 /* ------------------------------ */
 
 /*  Command processing functions  */
@@ -458,7 +455,7 @@ int read_command(char* str)
 void command_cd(char* str)
 {
 	// Reading an argument and checking it for correctness
-	int i = 3, counter = 0;
+	unsigned int i = 3, counter = 0;
 	char argument[WAY_MAX_LEN] = { 0 };
 	do
 	{
@@ -477,7 +474,7 @@ void command_ls(char* str)
 	if (str[2] == 0) flag = 0;
 	else
 	{
-		int i = 3, counter = 0;
+		unsigned int i = 3, counter = 0;
 		char argument[NAME_MAX_LEN] = { 0 };
 		while (i < strlen(str))
 		{
@@ -504,7 +501,7 @@ void command_ls(char* str)
 
 void command_rm(char* str)
 {
-	int i = 3, flag = 0, count = 0;
+	unsigned int i = 3, flag = 0, count = 0;
 	char argument[FOLDER_NAME_MAX_LEN] = { 0 };
 	while (str[i] != ' ' || i < strlen(str))
 	{
@@ -520,7 +517,7 @@ void command_rm(char* str)
 	int temp = 0;
 	if (flag == 1)
 	{
-		for (int i = count; i < strlen(str); i++)
+		for (unsigned int i = count; i < strlen(str); i++)
 		{
 			argument[temp] = str[i];
 			if (temp + 1 == FOLDER_NAME_MAX_LEN) break;
@@ -530,7 +527,7 @@ void command_rm(char* str)
 	else
 	{
 		temp = 0;
-		for (int i = 3; i < strlen(str); i++)
+		for (unsigned int i = 3; i < strlen(str); i++)
 		{
 			argument[temp] = str[i];
 			if (temp + 1 == FOLDER_NAME_MAX_LEN) break;
@@ -556,7 +553,7 @@ void command_rm(char* str)
 void command_mkdir(char* str)
 {
 	// Reading an argument and checking it for correctness
-	int i = 6, counter = 0;
+	unsigned int i = 6, counter = 0;
 	char argument[FOLDER_NAME_MAX_LEN] = { 0 };
 	while (i < strlen(str))
 	{
@@ -598,7 +595,7 @@ void command_mkdir(char* str)
 void command_touch(char* str)
 {
 	// Reading an argument and checking it for correctness
-	int i = 6, counter = 0;
+	unsigned int i = 6, counter = 0;
 	char argument[FOLDER_NAME_MAX_LEN] = { 0 };
 	while (i < strlen(str))
 	{
@@ -624,17 +621,14 @@ void command_touch(char* str)
 		if (strcmp(folder_name, argument) == 0)
 		{
 			printf("touch: error creating the file \"%s\". A folder with that name already exists.\n", folder_name);
-			return ERROR;
+			return;
 		}
 	}
 	// Creating a new file in the tree
 	Node* local_directory_now = directory_now;
 	char local_way_now[WAY_MAX_LEN] = { 0 };
 	strcpy(local_way_now, way_now);
-	if (to_directory(argument, TOUCH) == ERROR)
-	{
-		printf("touch: error creating the file \"%s\"\n", argument);
-	}
+	if (to_directory(argument, TOUCH) == ERROR) printf("touch: error creating the file \"%s\"\n", argument);
 	directory_now = local_directory_now;
 	memset(way_now, 0, WAY_MAX_LEN);
 	strcpy(way_now, local_way_now);
@@ -643,7 +637,7 @@ void command_touch(char* str)
 void command_find(char* str)
 {
 	// Reading an argument and checking it for correctness
-	int i = 5, counter = 0;
+	unsigned int i = 5, counter = 0;
 	char argument[WAY_MAX_LEN] = { 0 };
 	while (i < strlen(str))
 	{
@@ -671,7 +665,7 @@ void command_find(char* str)
 
 void command_help(char* str)
 {
-	for (int i = 4; i < strlen(str); i++)
+	for (unsigned int i = 4; i < strlen(str); i++)
 	{
 		if (str[i] != 0)
 		{
