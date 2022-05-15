@@ -436,7 +436,7 @@ int to_directory(char* name, int flag)
 
 int read_command(char* str)
 {
-	char commands[7][6] = { "exit", "cd", "ls", "rm", "mkdir", "touch", "find" };
+	char commands[8][6] = { "exit", "cd", "ls", "rm", "mkdir", "touch", "find", "help"};
 	char command[6] = { 0 };
 	int mark = -1;
 	for (int i = 0; i < 5; i++)
@@ -445,7 +445,7 @@ int read_command(char* str)
 		command[i] = str[i];
 	}
 	command[strlen(command)] = '\0';
-	for (int j = 0; j < 7; j++)
+	for (int j = 0; j < 8; j++)
 	{
 		if (strcmp(command, commands[j]) == 0)
 		{
@@ -670,6 +670,33 @@ void command_find(char* str)
 	strcpy(way_now, local_way_now);
 }
 
+void command_help(char* str)
+{
+	for (int i = 4; i < strlen(str); i++)
+	{
+		if (str[i] != 0)
+		{
+			printf("help: the argument of this function is not required\n");
+			return;
+		}
+	}
+	printf("Command list:\n"
+		"1. cd <operator> <name> - following the specified path\n"
+		"   <operator> can accept arguments: \" \" \".\" \"..\"\n"
+		"   <name> can accept absolute and relative path to folder\n"
+		"2. ls <operator> - viewing the current directory\n"
+		"   <operator> can accept argument \"-l\" or be missing\n"
+		"3. rm <operator> <name> - deleting files\n"
+		"   <operator> can accept argument \"-r\" or be missing\n"
+		"   <name> can accept the name of folder\n"
+		"4. mkdir <name> - creating a folder\n"
+		"   <name> can accept the name of folder without next symbols: ? | \\ / \" > <\n"
+		"5. touch <name> - creating a file\n"
+		"   <name> can accept the name of file without next symbols: ? | \\ / \" > <\n"
+		"6. find <name> - search for files by the specified path\n"
+		"   <name> can accept absolute and relative path to folder or file\n");
+}
+
 void inputs()
 {
 	bool flag = false;
@@ -689,6 +716,7 @@ void inputs()
 		else if (num == 4) command_mkdir(input);
 		else if (num == 5) command_touch(input);
 		else if (num == 6) command_find(input);
+		else if (num == 7) command_help(input);
 		else printf("%s: command not found\n", input);
 	}
 }
