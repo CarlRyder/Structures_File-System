@@ -274,7 +274,25 @@ int item_delete(Node* directory, char* name, int flag)
 
 int item_find(Node* directory, char* name)
 {
-
+	if (to_directory(name, FIND) == ERROR) return TRUE;
+	for (int i = 0; i < TREE_DEGREE - 1; i++)
+	{
+		if (directory_now->keys[i] == NULL) break;
+		if (directory_now == root) printf("%s%s\n", way_now, directory_now->keys[i]->name);
+		else printf("%s/%s\n", way_now, directory_now->keys[i]->name);
+	}
+	for (int i = 0; i < TREE_DEGREE; i++)
+	{
+		if (directory_now->childrens[i] == NULL) break;
+		item_find(directory_now->childrens[i], directory_now->childrens[i]->name);
+	}
+	if (directory_now != root)
+	{
+		directory_now = directory_now->parent;
+		int count = strlen(way_now);
+		for (int i = count - strlen(way_now) + 1; i < WAY_MAX_LEN; i++) way_now[i] = 0;
+	}
+	return TRUE;
 }
 
 void items_print(int flag)
@@ -353,7 +371,22 @@ int to_directory(char* name, int flag)
 				// Processing the "find" command
 				if (flag == FIND)
 				{
-
+					for (int j = 0; j < TREE_DEGREE - 1; j++)
+					{
+						if (directory_now->keys[j] == NULL) 
+						{
+							printf("find: this file does not exist\n");
+							marker = ERROR;
+							break;
+						}
+						if (directory_now->keys[j] != NULL && strcmp(directory_now->keys[j]->name, str) == 0)
+						{
+							if (directory_now == root) printf("%s%s\n", way_now, directory_now->keys[j]->name);
+							else printf("%s/%s\n", way_now, directory_now->keys[j]->name);
+							marker = TRUE;
+							break;
+						}
+					}
 				}
 				// Processing the "mkdir" command
 				if (flag == MKDIR) node_push(directory_now, str);
@@ -548,7 +581,31 @@ void command_touch(char* str)
 
 void command_find(char* str)
 {
-
+	// Reading an argument and checking it for correctness
+	int i = 5, counter = 0;
+	char argument[WAY_MAX_LEN] = { 0 };
+	while (i < strlen(str))
+	{
+		argument[counter] = str[i];
+		if (counter + 1 != WAY_MAX_LEN) counter++;
+		i++;
+	}
+	argument[counter] = '\0';
+	Node* local_directory_now = directory_now;
+	char local_way_now[WAY_MAX_LEN] = { 0 };
+	strcpy(local_way_now, way_now);
+	if (strcmp(argument, "\0") == 0)
+	{
+		item_find(root, root->name);
+		directory_now = local_directory_now;
+		memset(way_now, 0, WAY_MAX_LEN);
+		strcpy(way_now, local_way_now);
+		return;
+	}
+	item_find(directory_now, argument);
+	directory_now = local_directory_now;
+	memset(way_now, 0, WAY_MAX_LEN);
+	strcpy(way_now, local_way_now);
 }
 
 void inputs()
