@@ -17,7 +17,8 @@
 /* Command defines */
 #define CD 1
 #define LS 2
-#define RM 3
+#define RM_FLAG 3
+#define RM_NOFLAG 0
 #define MKDIR 4
 #define TOUCH 5
 #define FIND 6
@@ -219,20 +220,14 @@ void key_delete(Node* directory, int key_number)
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
 	{
 		if (directory->keys[i] == NULL) break;
-		if (i >= key_number)
+		if (i == key_number)
 		{
-			// If this is the first file in the directory, then first just delete it
-			if (i == 0)
-			{
-				free(directory->keys[i]);
-				directory->keys[i] = NULL;
-			}
-			else
-			{
-				directory->keys[i - 1] = directory->keys[i];
-				free(directory->keys[i]);
-				directory->keys[i] = NULL;
-			}
+			directory->keys[i] = NULL;
+		}
+		else if (i > key_number)
+		{
+			directory->keys[i - 1] = directory->keys[i];
+			directory->keys[i] = NULL;	
 		}
 	}
 }
@@ -263,12 +258,12 @@ int item_delete(Node* directory, char* name, int flag)
 			}
 			else
 			{
-				printf("rm: Deletion \"%s\" is not possible. This object is a folder.", name);
+				printf("rm: deletion \"%s\" is not possible. This object is a folder.\n", name);
 				return ERROR;
 			}
 		}
 	}
-	printf("rm: \"%s\" cannot be deleted. This object is missing in the current directory.", name);
+	printf("rm: \"%s\" cannot be deleted. This object is missing in the current directory.\n", name);
 	return ERROR;
 }
 
@@ -407,6 +402,8 @@ int to_directory(char* name, int flag)
 				// Processing the delete command
 				if (str == NULL)
 				{
+					if (flag == RM_FLAG) item_delete(directory_now->parent, directory_now->name, 1);
+					if (flag == RM_NOFLAG) item_delete(directory_now->parent, directory_now->name, 0);
 					return marker;
 				}
 			}
@@ -420,6 +417,10 @@ int to_directory(char* name, int flag)
 			key_push(directory_now, str);
 			marker = TRUE;
 		}
+	}
+	if (str != NULL && (flag == RM_FLAG) || (flag == RM_NOFLAG))
+	{
+		item_delete(directory_now, str, 1);
 	}
 	return marker;
 }
@@ -499,7 +500,53 @@ void command_ls(char* str)
 
 void command_rm(char* str)
 {
-	
+	int i = 3, flag = 0, count = 0;
+	char argument[FOLDER_NAME_MAX_LEN] = { 0 };
+	while (str[i] != ' ' || i < strlen(str))
+	{
+		if (str[i] == '-' && str[i + 1] == 'r' && str[i + 2] == ' ')
+		{
+			flag = 1;
+			count = i + 3;
+			break;
+		}
+		if (i + 1 == strlen(str)) break;
+		i++;
+	}
+	int temp = 0;
+	if (flag == 1)
+	{
+		for (int i = count; i < strlen(str); i++)
+		{
+			argument[temp] = str[i];
+			if (temp + 1 == FOLDER_NAME_MAX_LEN) break;
+			temp++;
+		}
+	}
+	else
+	{
+		temp = 0;
+		for (int i = 3; i < strlen(str); i++)
+		{
+			argument[temp] = str[i];
+			if (temp + 1 == FOLDER_NAME_MAX_LEN) break;
+			temp++;
+		}
+	}
+	argument[strlen(argument)] = '\0';
+	if (strcmp(argument, "\0") == 0)
+	{
+		printf("rm: skipped argument\n");
+		return;
+	}
+	Node* local_directory_now = directory_now;
+	char local_way_now[WAY_MAX_LEN] = { 0 };
+	strcpy(local_way_now, way_now);
+	if (flag == 1) to_directory(argument, RM_FLAG);
+	else to_directory(argument, RM_NOFLAG);
+	directory_now = local_directory_now;
+	memset(way_now, 0, WAY_MAX_LEN);
+	strcpy(way_now, local_way_now);
 }
 
 void command_mkdir(char* str)
@@ -519,6 +566,11 @@ void command_mkdir(char* str)
 		i++;
 	}
 	argument[counter] = '\0';
+	if (strcmp(argument, "\0") == 0) 
+	{
+		printf("mkdir: skipped argument\n");
+		return;
+	}
 	// Checking for the existence of a file with the same name
 	for (int j = 0; j < TREE_DEGREE - 1; j++)
 	{
@@ -556,6 +608,11 @@ void command_touch(char* str)
 		i++;
 	}
 	argument[counter] = '\0';
+	if (strcmp(argument, "\0") == 0)
+	{
+		printf("touch: skipped argument\n");
+		return;
+	}
 	for (int i = 0; i < TREE_DEGREE; i++)
 	{
 		if (directory_now->childrens[i] == NULL) break;
