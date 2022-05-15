@@ -193,6 +193,7 @@ void node_delete(Node* directory)
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
 	{
 		if (directory->keys[i] == NULL) break;
+		free(directory->keys[i]);
 		directory->keys[i] = NULL;
 	}
 	// Deleting all folders in this directory
@@ -250,8 +251,12 @@ int item_delete(Node* directory, char* name, int flag)
 	for (int i = 0; i < TREE_DEGREE; i++)
 	{
 		if (directory->childrens[i] == NULL) break;
-		if (marker == 1 && i != 0) directory->childrens[i - 1] = directory->childrens[i];
 		char* directory_name = directory->childrens[i]->name;
+		if (marker == 1 && i != 0)
+		{
+			directory->childrens[i - 1] = directory->childrens[i];
+			directory->childrens[i] = NULL;
+		}
 		if (strcmp(directory_name, name) == 0)
 		{
 			if (flag == 1)
@@ -459,6 +464,11 @@ void command_cd(char* str)
 	char argument[WAY_MAX_LEN] = { 0 };
 	do
 	{
+		if (str[i] == ' ')
+		{
+			printf("cd: incorrect argument\n");
+			return;
+		}
 		argument[counter] = str[i];
 		if (counter + 1 == WAY_MAX_LEN) break;
 		counter++;
@@ -579,6 +589,15 @@ void command_mkdir(char* str)
 		else if (strcmp(directory_now->keys[j]->name, argument) == 0)
 		{
 			printf("mkdir: error creating the folder \"%s\". A file with that name already exists.\n", argument);
+			return;
+		}
+	}
+	for (int j = 0; j < TREE_DEGREE; j++)
+	{
+		if (directory_now->childrens[j] == NULL) break;
+		else if (strcmp(directory_now->childrens[j]->name, argument) == 0)
+		{
+			printf("mkdir: error creating the folder \"%s\". A folder with that name already exists.\n", argument);
 			return;
 		}
 	}
