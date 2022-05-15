@@ -25,7 +25,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 
@@ -699,17 +698,17 @@ void command_help(char* str)
 
 void inputs()
 {
-	bool flag = false;
-	while (true)
+	int flag = ERROR;
+	while (TRUE)
 	{
-		if (flag == true) break;
+		if (flag == TRUE) break;
 		printf("\n%s > ", way_now);
 		char input[INPUT_MAX_LEN];
 		fgets(input, INPUT_MAX_LEN, stdin);
 		input[strcspn(input, "\n")] = 0;
 		fseek(stdin, 0, SEEK_END);
 		int num = read_command(input);
-		if (num == 0) flag = true; // exit
+		if (num == 0) flag = TRUE;
 		else if (num == 1) command_cd(input);
 		else if (num == 2) command_ls(input);
 		else if (num == 3) command_rm(input);
@@ -725,7 +724,7 @@ void inputs()
 
 int main()
 {
-	printf("File System \"Alpha\"\n"
+	printf("File System \"Pre-Release\"\n"
 		"Copyright (c) 2022 Saint-Petersburg Polytechnic University, Russia\n");
 	tree_init();
 	inputs();
