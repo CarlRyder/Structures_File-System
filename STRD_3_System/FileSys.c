@@ -59,6 +59,12 @@ char* get_date_now()
 	return date;
 }
 
+int check_symbol(unsigned char symbol)
+{
+	if (symbol == '/' || symbol == '\\' || symbol == ':' || symbol == '|' || symbol == '?' || symbol == '"' || symbol == '<' || symbol == '>' || symbol == ' ') return 0;
+	else return 1;
+}
+
 void memory_error()
 {
 	printf("The memory for the tree was not allocated.\n"
@@ -374,6 +380,14 @@ int to_directory(char* name, int flag)
 		}
 		if (marker == ERROR) break;
 	}
+	if (flag == TOUCH)
+	{
+		if (strtok(NULL, "/") == NULL)
+		{
+			key_push(directory_now, str);
+			marker = TRUE;
+		}
+	}
 	return marker;
 }
 
@@ -455,12 +469,6 @@ void command_rm(char* str)
 	
 }
 
-int check_symbol(unsigned char symbol)
-{
-	if (symbol == '/' || symbol == '\\' || symbol == ':' || symbol == '|' || symbol == '?' || symbol == '"' || symbol == '<' || symbol == '>' || symbol == ' ') return 0;
-	else return 1;
-}
-
 void command_mkdir(char* str)
 {
 	// Reading an argument and checking it for correctness
@@ -500,7 +508,42 @@ void command_mkdir(char* str)
 
 void command_touch(char* str)
 {
-
+	// Reading an argument and checking it for correctness
+	int i = 6, counter = 0;
+	char argument[FOLDER_NAME_MAX_LEN] = { 0 };
+	while (i < strlen(str))
+	{
+		if (str[5] != ' ' || check_symbol(str[i]) == 0)
+		{
+			printf("touch: incorrect argument\n");
+			return;
+		}
+		argument[counter] = str[i];
+		if (counter + 1 != FOLDER_NAME_MAX_LEN) counter++;
+		i++;
+	}
+	argument[counter] = '\0';
+	for (int i = 0; i < TREE_DEGREE; i++)
+	{
+		if (directory_now->childrens[i] == NULL) break;
+		char* folder_name = directory_now->childrens[i]->name;
+		if (strcmp(folder_name, argument) == 0)
+		{
+			printf("touch: error creating the file \"%s\". A folder with that name already exists.\n", folder_name);
+			return ERROR;
+		}
+	}
+	// Creating a new file in the tree
+	Node* local_directory_now = directory_now;
+	char local_way_now[WAY_MAX_LEN] = { 0 };
+	strcpy(local_way_now, way_now);
+	if (to_directory(argument, TOUCH) == ERROR)
+	{
+		printf("touch: error creating the file \"%s\"\n", argument);
+	}
+	directory_now = local_directory_now;
+	memset(way_now, 0, WAY_MAX_LEN);
+	strcpy(way_now, local_way_now);
 }
 
 void command_find(char* str)
