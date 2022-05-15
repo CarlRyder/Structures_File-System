@@ -307,29 +307,26 @@ void items_print(int flag)
 
 int to_directory(char* name, int flag)
 {
-	if (flag == CD)
+	// Processing the "cd" command
+	if (strcmp(name, "\n") == 0 || strcmp(name, "\0") == 0)
 	{
-		// Processing the "cd" command
-		if (strcmp(name, "\n") == 0 || strcmp(name, "\0") == 0)
-		{
-			directory_now = root;
-			way_now[0] = '/';
-			for (int i = 1; i < WAY_MAX_LEN; i++) way_now[i] = '\0';
-			return TRUE;
-		}
-		// Processing the "cd .." command
-		if (strcmp(name, "..") == 0)
-		{
-			if (directory_now == root) return TRUE;
-			int count = strlen(way_now);
-			for (int i = count - strlen(directory_now->name) - 1; i < count; i++) way_now[i] = '\0';
-			directory_now = directory_now->parent;
-			if (directory_now == root) way_now[0] = '/';
-			return TRUE;
-		}
-		// Processing the "cd ." command
-		if (strcmp(name, ".") == 0) return TRUE;
+		directory_now = root;
+		way_now[0] = '/';
+		for (int i = 1; i < WAY_MAX_LEN; i++) way_now[i] = '\0';
+		return TRUE;
 	}
+	// Processing the "cd .." command
+	if (strcmp(name, "..") == 0)
+	{
+		if (directory_now == root) return TRUE;
+		int count = strlen(way_now);
+		for (int i = count - strlen(directory_now->name) - 1; i < count; i++) way_now[i] = '\0';
+		directory_now = directory_now->parent;
+		if (directory_now == root) way_now[0] = '/';
+		return TRUE;
+	}
+	// Processing the "cd ." command
+	if (strcmp(name, ".") == 0) return TRUE;
 	// Relative path processing
 	if (name[0] == '/')
 	{
@@ -408,7 +405,18 @@ int read_command(char* str)
 
 void command_cd(char* str)
 {
-
+	// Reading an argument and checking it for correctness
+	int i = 3, counter = 0;
+	char argument[WAY_MAX_LEN] = { 0 };
+	do
+	{
+		argument[counter] = str[i];
+		if (counter + 1 == WAY_MAX_LEN) break;
+		counter++;
+		i++;
+	} while (i < strlen(str));
+	argument[strcspn(argument, "\n")] = '\0';
+	if (to_directory(argument, CD) == ERROR) printf("cd: directory \"%s\" does not exist\n", argument);
 }
 
 void command_ls(char* str)
@@ -439,24 +447,17 @@ void command_ls(char* str)
 			return;
 		}
 	}
-	Node* local_directory_now = directory_now;
-	char local_way_now[WAY_MAX_LEN] = { 0 };
-	strcpy(local_way_now, way_now);
 	items_print(flag);
-	directory_now = local_directory_now;
-	memset(way_now, 0, WAY_MAX_LEN);
-	strcpy(way_now, local_way_now);
 }
 
 void command_rm(char* str)
 {
-
+	
 }
 
 int check_symbol(unsigned char symbol)
 {
-	if (symbol == '/' || symbol == '\\' || symbol == ':' || symbol == '|' || symbol == '?' || symbol == '"' || symbol == '<'
-		|| symbol == '>' || symbol == ' ') return 0;
+	if (symbol == '/' || symbol == '\\' || symbol == ':' || symbol == '|' || symbol == '?' || symbol == '"' || symbol == '<' || symbol == '>' || symbol == ' ') return 0;
 	else return 1;
 }
 
