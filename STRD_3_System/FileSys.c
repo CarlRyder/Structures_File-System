@@ -194,7 +194,6 @@ void node_delete(Node* directory)
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
 	{
 		if (directory->keys[i] == NULL) break;
-		free(directory->keys[i]);
 		directory->keys[i] = NULL;
 	}
 	// Deleting all folders in this directory
@@ -204,13 +203,15 @@ void node_delete(Node* directory)
 		node_delete(directory->childrens[i]);
 	}
 	// Removing this directory from the tree
-	for (int i = 0; i < TREE_DEGREE; i++)
+	if (directory->parent != NULL)
 	{
-		if ((directory->parent)->childrens[i] == directory)
+		for (int i = 0; i < TREE_DEGREE; i++)
 		{
-			free((directory->parent)->childrens[i]);
-			(directory->parent)->childrens[i] = NULL;
-			break;
+			if ((directory->parent)->childrens[i] == directory)
+			{
+				(directory->parent)->childrens[i] = NULL;
+				break;
+			}
 		}
 	}
 }
@@ -224,10 +225,10 @@ void key_delete(Node* directory, int key_number)
 		{
 			directory->keys[i] = NULL;
 		}
-		else if (i > key_number)
+		else if (i > key_number && i != 0)
 		{
 			directory->keys[i - 1] = directory->keys[i];
-			directory->keys[i] = NULL;	
+			directory->keys[i] = NULL;
 		}
 	}
 }
@@ -242,19 +243,23 @@ int item_delete(Node* directory, char* name, int flag)
 		if (strcmp(file_name, name) == 0)
 		{
 			key_delete(directory, i);
+			directory->count_keys--;
 			return TRUE;
 		}
 	}
+	int marker = 0;
 	for (int i = 0; i < TREE_DEGREE; i++)
 	{
 		if (directory->childrens[i] == NULL) break;
+		if (marker == 1 && i != 0) directory->childrens[i - 1] = directory->childrens[i];
 		char* directory_name = directory->childrens[i]->name;
 		if (strcmp(directory_name, name) == 0)
 		{
 			if (flag == 1)
 			{
-				node_delete(directory);
-				return TRUE;
+				node_delete(directory->childrens[i]);
+				directory->count_nodes--;
+				marker = 1;
 			}
 			else
 			{
@@ -263,7 +268,7 @@ int item_delete(Node* directory, char* name, int flag)
 			}
 		}
 	}
-	printf("rm: \"%s\" cannot be deleted. This object is missing in the current directory.\n", name);
+	if (marker != 1) printf("rm: \"%s\" cannot be deleted. This object is missing in the current directory.\n", name);
 	return ERROR;
 }
 
