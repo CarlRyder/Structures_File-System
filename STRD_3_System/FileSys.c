@@ -61,7 +61,7 @@ char* get_date_now()
 
 int check_symbol(unsigned char symbol)
 {
-	if (symbol == '/' || symbol == '\\' || symbol == ':' || symbol == '|' || symbol == '?' || symbol == '"' || symbol == '<' || symbol == '>' || symbol == ' ') return 0;
+	if (symbol == ':' || symbol == '|' || symbol == '?' || symbol == '"' || symbol == '<' || symbol == '>' || symbol == ' ') return 0;
 	else return 1;
 }
 
