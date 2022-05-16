@@ -74,6 +74,25 @@ void memory_error()
 
 /* Tree transformation functions */
 
+void save_tree(int flag, char* name, char* creation_date)
+{
+	FILE* save = fopen("filesystem.txt", "a");
+	if (save != NULL)
+	{
+		if (flag == MKDIR && creation_date != NULL) fprintf(save, "%d %s %s\n", flag, name, creation_date);
+		else if (flag == TOUCH && creation_date != NULL) fprintf(save, "%d %s %s\n", flag, name, creation_date);
+		else if (flag == RM_FLAG) fprintf(save, "%d %s\n", flag, name);
+		else if (flag == RM_NOFLAG) fprintf(save, "%d %s\n", flag, name);
+		else if (flag == CD)
+		{
+			if (strcmp(name, " ") == 0) fprintf(save, "cd\n");
+			else fprintf(save, "cd %s\n", name);
+		}
+		fclose(save);
+	}
+	else memory_error();
+}
+
 void tree_init()
 {
 	// Creating the root of tree
@@ -93,7 +112,7 @@ void tree_init()
 	else memory_error();
 }
 
-int node_push(Node* directory, char* dname)
+int node_push(Node* directory, char* dname, char* fullname)
 {
 	// Checking if the limit of created folders in the directory is exceeded
 	if (directory->count_nodes == TREE_DEGREE)
@@ -123,6 +142,7 @@ int node_push(Node* directory, char* dname)
 		for (int i = 0; i < TREE_DEGREE - 1; i++) new_folder->keys[i] = NULL;
 		strcpy(new_folder->creation_date, get_date_now());
 		strcpy(new_folder->name, dname);
+		save_tree(MKDIR, fullname, new_folder->creation_date);
 		// Changing current directory
 		for (int i = 0; i < TREE_DEGREE; i++)
 		{
@@ -142,7 +162,7 @@ int node_push(Node* directory, char* dname)
 	}
 }
 
-int key_push(Node* directory, char* fname)
+int key_push(Node* directory, char* fname, char* fullname)
 {
 	// Checking if the limit of created folders in the directory is exceeded
 	if (directory->count_keys == TREE_DEGREE - 1)
@@ -168,6 +188,7 @@ int key_push(Node* directory, char* fname)
 		new_file->directory = directory;
 		strcpy(new_file->creation_date, get_date_now());
 		strcpy(new_file->name, fname);
+		save_tree(TOUCH, fullname, new_file->creation_date);
 		// Changing current directory
 		for (int i = 0; i < TREE_DEGREE - 1; i++)
 		{
@@ -233,18 +254,28 @@ void key_delete(Node* directory, int key_number)
 	}
 }
 
-int item_delete(Node* directory, char* name, int flag)
+int item_delete(Node* directory, char* name, char* fullname, int flag)
 {
 	// Delete the file
+	printf("%s, flag = %d\n", name, flag);
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
 	{
 		if (directory->keys[i] == NULL) break;
 		char* file_name = directory->keys[i]->name;
 		if (strcmp(file_name, name) == 0)
 		{
-			key_delete(directory, i);
-			directory->count_keys--;
-			return TRUE;
+			if (flag == 0)
+			{
+				key_delete(directory, i);
+				save_tree(RM_NOFLAG, fullname, NULL);
+				directory->count_keys--;
+				return TRUE;
+			}
+			else
+			{
+				printf("rm -r: deletion \"%s\" is not possible. This object is a file.\n", name);
+				return ERROR;
+			}
 		}
 	}
 	int marker = 0;
@@ -262,6 +293,7 @@ int item_delete(Node* directory, char* name, int flag)
 			if (flag == 1)
 			{
 				node_delete(directory->childrens[i]);
+				save_tree(RM_FLAG, fullname, NULL);
 				directory->count_nodes--;
 				marker = 1;
 			}
@@ -278,12 +310,15 @@ int item_delete(Node* directory, char* name, int flag)
 
 int to_directory(char* name, int flag)
 {
+	char fullname[WAY_MAX_LEN] = { 0 };
+	strcpy(fullname, name);
 	// Processing the "cd" command
 	if (strcmp(name, "\n") == 0 || strcmp(name, "\0") == 0)
 	{
 		directory_now = root;
 		way_now[0] = '/';
 		for (int i = 1; i < WAY_MAX_LEN; i++) way_now[i] = '\0';
+		save_tree(CD, " ", NULL);
 		return TRUE;
 	}
 	// Processing the "cd .." command
@@ -294,6 +329,7 @@ int to_directory(char* name, int flag)
 		for (int i = count - strlen(directory_now->name) - 1; i < count; i++) way_now[i] = '\0';
 		directory_now = directory_now->parent;
 		if (directory_now == root) way_now[0] = '/';
+		save_tree(CD, "..", NULL);
 		return TRUE;
 	}
 	// Processing the "cd ." command
@@ -336,7 +372,7 @@ int to_directory(char* name, int flag)
 					}
 				}
 				// Processing the "mkdir" command
-				if (flag == MKDIR) node_push(directory_now, str);
+				if (flag == MKDIR) node_push(directory_now, str, fullname);
 				else
 				{
 					marker = ERROR;
@@ -349,13 +385,18 @@ int to_directory(char* name, int flag)
 				int count = strlen(way_now);
 				for (unsigned int j = 0; j < strlen(str); j++) way_now[j + count] = str[j];
 				directory_now = directory_now->childrens[i];
+				if (flag == CD) save_tree(CD, directory_now->name, NULL);
 				i = -1;
 				str = strtok(NULL, "/");
 				// Processing the delete command
 				if (str == NULL)
 				{
-					if (flag == RM_FLAG) item_delete(directory_now->parent, directory_now->name, 1);
-					if (flag == RM_NOFLAG) item_delete(directory_now->parent, directory_now->name, 0);
+					if (flag == RM_FLAG)
+					{
+						printf("ny da i chto\n");
+						item_delete(directory_now->parent, directory_now->name, fullname, 1);
+					}
+					if (flag == RM_NOFLAG) item_delete(directory_now->parent, directory_now->name, fullname, 0);
 					return marker;
 				}
 			}
@@ -366,11 +407,12 @@ int to_directory(char* name, int flag)
 	{
 		if (strtok(NULL, "/") == NULL)
 		{
-			key_push(directory_now, str);
+			key_push(directory_now, str, fullname);
 			marker = TRUE;
 		}
 	}
-	if (str != NULL && (flag == RM_FLAG) || (flag == RM_NOFLAG)) item_delete(directory_now, str, 1);
+	if (str != NULL && flag == RM_FLAG) item_delete(directory_now, str, fullname, 1);
+	else if (str != NULL && flag == RM_NOFLAG) item_delete(directory_now, str, fullname, 0);
 	return marker;
 }
 
@@ -554,7 +596,11 @@ void command_rm(char* str)
 	char local_way_now[WAY_MAX_LEN] = { 0 };
 	strcpy(local_way_now, way_now);
 	if (flag == 1) to_directory(argument, RM_FLAG);
-	else to_directory(argument, RM_NOFLAG);
+	else
+	{
+		printf("flag in rm = %d\n", flag);
+		to_directory(argument, RM_NOFLAG);
+	}
 	directory_now = local_directory_now;
 	memset(way_now, 0, WAY_MAX_LEN);
 	strcpy(way_now, local_way_now);
