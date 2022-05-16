@@ -50,6 +50,7 @@ typedef struct FKey
 Node* root = NULL;
 Node* directory_now = NULL;
 char way_now[WAY_MAX_LEN] = { 0 };
+int loadtree = 0;
 
 char* get_date_now()
 {
@@ -76,21 +77,25 @@ void memory_error()
 
 void save_tree(int flag, char* name, char* creation_date)
 {
-	FILE* save = fopen("filesystem.txt", "a");
-	if (save != NULL)
+	if (loadtree == 0)
 	{
-		if (flag == MKDIR && creation_date != NULL) fprintf(save, "%d %s %s\n", flag, name, creation_date);
-		else if (flag == TOUCH && creation_date != NULL) fprintf(save, "%d %s %s\n", flag, name, creation_date);
-		else if (flag == RM_FLAG) fprintf(save, "%d %s\n", flag, name);
-		else if (flag == RM_NOFLAG) fprintf(save, "%d %s\n", flag, name);
-		else if (flag == CD)
+		FILE* save = fopen("filesystem.txt", "a");
+		if (save != NULL)
 		{
-			if (strcmp(name, " ") == 0) fprintf(save, "cd\n");
-			else fprintf(save, "cd %s\n", name);
+			if (flag == MKDIR && creation_date != NULL) fprintf(save, "%d %s %s\n", flag, name, creation_date);
+			else if (flag == TOUCH && creation_date != NULL) fprintf(save, "%d %s %s\n", flag, name, creation_date);
+			else if (flag == RM_FLAG) fprintf(save, "%d %s\n", flag, name);
+			else if (flag == RM_NOFLAG) fprintf(save, "%d %s\n", flag, name);
+			else if (flag == CD)
+			{
+				if (strcmp(name, " ") == 0) fprintf(save, "%d\n", flag);
+				else fprintf(save, "%d %s\n", flag, name);
+			}
+			fclose(save);
 		}
-		fclose(save);
+		else memory_error();
 	}
-	else memory_error();
+	else return;
 }
 
 void tree_init()
@@ -112,7 +117,7 @@ void tree_init()
 	else memory_error();
 }
 
-int node_push(Node* directory, char* dname, char* fullname)
+int node_push(Node* directory, char* dname, char* fullname, char* date)
 {
 	// Checking if the limit of created folders in the directory is exceeded
 	if (directory->count_nodes == TREE_DEGREE)
@@ -140,7 +145,8 @@ int node_push(Node* directory, char* dname, char* fullname)
 		new_folder->count_nodes = 0;
 		for (int i = 0; i < TREE_DEGREE; i++) new_folder->childrens[i] = NULL;
 		for (int i = 0; i < TREE_DEGREE - 1; i++) new_folder->keys[i] = NULL;
-		strcpy(new_folder->creation_date, get_date_now());
+		if (loadtree == 0) strcpy(new_folder->creation_date, get_date_now());
+		else strcpy(new_folder->creation_date, date);
 		strcpy(new_folder->name, dname);
 		save_tree(MKDIR, fullname, new_folder->creation_date);
 		// Changing current directory
@@ -162,7 +168,7 @@ int node_push(Node* directory, char* dname, char* fullname)
 	}
 }
 
-int key_push(Node* directory, char* fname, char* fullname)
+int key_push(Node* directory, char* fname, char* fullname, char* date)
 {
 	// Checking if the limit of created folders in the directory is exceeded
 	if (directory->count_keys == TREE_DEGREE - 1)
@@ -186,7 +192,8 @@ int key_push(Node* directory, char* fname, char* fullname)
 	if (new_file != NULL)
 	{
 		new_file->directory = directory;
-		strcpy(new_file->creation_date, get_date_now());
+		if (loadtree == 0) strcpy(new_file->creation_date, get_date_now());
+		else strcpy(new_file->creation_date, date);
 		strcpy(new_file->name, fname);
 		save_tree(TOUCH, fullname, new_file->creation_date);
 		// Changing current directory
@@ -257,7 +264,6 @@ void key_delete(Node* directory, int key_number)
 int item_delete(Node* directory, char* name, char* fullname, int flag)
 {
 	// Delete the file
-	printf("%s, flag = %d\n", name, flag);
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
 	{
 		if (directory->keys[i] == NULL) break;
@@ -308,7 +314,7 @@ int item_delete(Node* directory, char* name, char* fullname, int flag)
 	return ERROR;
 }
 
-int to_directory(char* name, int flag)
+int to_directory(char* name, int flag, char* date)
 {
 	char fullname[WAY_MAX_LEN] = { 0 };
 	strcpy(fullname, name);
@@ -372,7 +378,7 @@ int to_directory(char* name, int flag)
 					}
 				}
 				// Processing the "mkdir" command
-				if (flag == MKDIR) node_push(directory_now, str, fullname);
+				if (flag == MKDIR) node_push(directory_now, str, fullname, date);
 				else
 				{
 					marker = ERROR;
@@ -391,11 +397,7 @@ int to_directory(char* name, int flag)
 				// Processing the delete command
 				if (str == NULL)
 				{
-					if (flag == RM_FLAG)
-					{
-						printf("ny da i chto\n");
-						item_delete(directory_now->parent, directory_now->name, fullname, 1);
-					}
+					if (flag == RM_FLAG) item_delete(directory_now->parent, directory_now->name, fullname, 1);
 					if (flag == RM_NOFLAG) item_delete(directory_now->parent, directory_now->name, fullname, 0);
 					return marker;
 				}
@@ -407,7 +409,7 @@ int to_directory(char* name, int flag)
 	{
 		if (strtok(NULL, "/") == NULL)
 		{
-			key_push(directory_now, str, fullname);
+			key_push(directory_now, str, fullname, date);
 			marker = TRUE;
 		}
 	}
@@ -418,7 +420,7 @@ int to_directory(char* name, int flag)
 
 int item_find(Node* directory, char* name)
 {
-	if (to_directory(name, FIND) == ERROR) return TRUE;
+	if (to_directory(name, FIND, NULL) == ERROR) return TRUE;
 	for (int i = 0; i < TREE_DEGREE - 1; i++)
 	{
 		if (directory_now->keys[i] == NULL) break;
@@ -473,6 +475,127 @@ void items_print(int flag)
 	}
 }
 
+void load_tree()
+{
+	loadtree = 1;
+	FILE* load = fopen("filesystem.txt", "r");
+	char str[WAY_MAX_LEN] = { 0 };
+	char name[WAY_MAX_LEN] = { 0 };
+	char date[CREATION_DATE_LEN] = { 0 };
+	char local_way_now[WAY_MAX_LEN] = { 0 };
+	while (fgets(str, sizeof(str), load) != NULL)
+	{
+		int flag = str[0] - '0';
+		if (flag == MKDIR)
+		{
+			int i = 2;
+			while (TRUE)
+			{
+				if (str[i] == ' ') break;
+				name[i - 2] = str[i];
+				i++;
+			}
+			i++;
+			int counter = 0;
+			while (TRUE)
+			{
+				if (str[i] == 0 || str[i] == EOF) break;
+				date[counter] = str[i];
+				i++;
+			}
+			Node* local_directory_now = directory_now;
+			strcpy(local_way_now, way_now);
+			to_directory(name, MKDIR, date);
+			directory_now = local_directory_now;
+			memset(way_now, 0, WAY_MAX_LEN);
+			strcpy(way_now, local_way_now);
+			memset(local_way_now, 0, WAY_MAX_LEN);
+			memset(name, 0, WAY_MAX_LEN);
+			memset(date, 0, WAY_MAX_LEN);
+		}
+		else if (flag == TOUCH)
+		{
+			int i = 2;
+			while (TRUE)
+			{
+				if (str[i] == ' ') break;
+				name[i - 2] = str[i];
+				i++;
+			}
+			name[strcspn(name, "\n")] = '\0';
+			i++;
+			int counter = 0;
+			while (TRUE)
+			{
+				if (str[i] == 0 || str[i] == EOF) break;
+				date[counter] = str[i];
+				i++;
+			}
+			Node* local_directory_now = directory_now;
+			strcpy(local_way_now, way_now);
+			to_directory(name, TOUCH, date);
+			directory_now = local_directory_now;
+			memset(way_now, 0, WAY_MAX_LEN);
+			strcpy(way_now, local_way_now);
+			memset(local_way_now, 0, WAY_MAX_LEN);
+			memset(name, 0, WAY_MAX_LEN);
+			memset(date, 0, WAY_MAX_LEN);
+		}
+		else if (flag == CD)
+		{
+			if (str[1] == 0)
+			{
+				directory_now = root;
+				way_now[0] = '/';
+				for (int i = 1; i < WAY_MAX_LEN; i++) way_now[i] = '\0';
+				continue;
+			}
+			else
+			{
+				int i = 2;
+				while (TRUE)
+				{
+					if (str[i] == 0) break;
+					name[i - 2] = str[i];
+					i++;
+				}
+				name[strcspn(name, "\n")] = '\0';
+				to_directory(name, CD, NULL);
+				memset(name, 0, WAY_MAX_LEN);
+			}
+		}
+		else if (flag == RM_NOFLAG)
+		{
+			int i = 2;
+			while (TRUE)
+			{
+				if (str[i] == 0) break;
+				name[i - 2] = str[i];
+				i++;
+			}
+			name[strcspn(name, "\n")] = '\0';
+			to_directory(name, RM_NOFLAG, NULL);
+			memset(name, 0, WAY_MAX_LEN);
+		}
+		else if (flag == RM_FLAG)
+		{
+			int i = 2;
+			while (TRUE)
+			{
+				if (str[i] == 0) break;
+				name[i - 2] = str[i];
+				i++;
+			}
+			name[strcspn(name, "\n")] = '\0';
+			to_directory(name, RM_FLAG, NULL);
+			memset(name, 0, WAY_MAX_LEN);
+		}
+		memset(str, 0, sizeof(str));
+	}
+	fclose(load);
+	loadtree = 0;
+}
+
 /* ------------------------------ */
 
 /*  Command processing functions  */
@@ -517,7 +640,7 @@ void command_cd(char* str)
 		i++;
 	} while (i < strlen(str));
 	argument[strcspn(argument, "\n")] = '\0';
-	if (to_directory(argument, CD) == ERROR) printf("cd: directory \"%s\" does not exist\n", argument);
+	if (to_directory(argument, CD, NULL) == ERROR) printf("cd: directory \"%s\" does not exist\n", argument);
 }
 
 void command_ls(char* str)
@@ -595,12 +718,8 @@ void command_rm(char* str)
 	Node* local_directory_now = directory_now;
 	char local_way_now[WAY_MAX_LEN] = { 0 };
 	strcpy(local_way_now, way_now);
-	if (flag == 1) to_directory(argument, RM_FLAG);
-	else
-	{
-		printf("flag in rm = %d\n", flag);
-		to_directory(argument, RM_NOFLAG);
-	}
+	if (flag == 1) to_directory(argument, RM_FLAG, NULL);
+	else to_directory(argument, RM_NOFLAG, NULL);
 	directory_now = local_directory_now;
 	memset(way_now, 0, WAY_MAX_LEN);
 	strcpy(way_now, local_way_now);
@@ -651,7 +770,7 @@ void command_mkdir(char* str)
 	Node* local_directory_now = directory_now;
 	char local_way_now[WAY_MAX_LEN] = { 0 };
 	strcpy(local_way_now, way_now);
-	to_directory(argument, MKDIR);
+	to_directory(argument, MKDIR, NULL);
 	directory_now = local_directory_now;
 	memset(way_now, 0, WAY_MAX_LEN);
 	strcpy(way_now, local_way_now);
@@ -693,7 +812,7 @@ void command_touch(char* str)
 	Node* local_directory_now = directory_now;
 	char local_way_now[WAY_MAX_LEN] = { 0 };
 	strcpy(local_way_now, way_now);
-	if (to_directory(argument, TOUCH) == ERROR) printf("touch: error creating the file \"%s\"\n", argument);
+	if (to_directory(argument, TOUCH, NULL) == ERROR) printf("touch: error creating the file \"%s\"\n", argument);
 	directory_now = local_directory_now;
 	memset(way_now, 0, WAY_MAX_LEN);
 	strcpy(way_now, local_way_now);
@@ -786,5 +905,6 @@ int main()
 	printf("File System \"Pre-Release\"\n"
 		"Copyright (c) 2022 Saint-Petersburg Polytechnic University, Russia\n");
 	tree_init();
+	load_tree();
 	inputs();
 }

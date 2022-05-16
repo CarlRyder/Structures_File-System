@@ -1,0 +1,18 @@
+4 Documents Mon May 16 14:49:19 2022
+4 Downloads Mon May 16 14:49:33 2022
+4 Desktop Mon May 16 14:49:39 2022
+1 Documents
+5 file1.exe Mon May 16 14:50:14 2022
+5 file2.exe Mon May 16 14:50:18 2022
+5 project.docx Mon May 16 14:50:24 2022
+4 Work Mon May 16 14:50:43 2022
+1 ..
+5 /Documents/Work/Lab1.c Mon May 16 14:51:37 2022
+5 /Documents/Work/Lab2.c Mon May 16 14:51:40 2022
+5 /Documents/Work/Lab3.c Mon May 16 14:51:42 2022
+5 /Documents/Work/Lab4.c Mon May 16 14:51:44 2022
+3 /Documents/Work
+0 /Documents/file1.exe
+1 Documents
+1
+1 Documents
